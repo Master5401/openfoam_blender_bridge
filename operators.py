@@ -1,5 +1,6 @@
 import bpy
 import os
+import subprocess
 
 
 class OPENFOAM_OT_WriteConfig(bpy.types.Operator):
@@ -117,4 +118,29 @@ boundaryField
             f.write(u_content)
 
         self.report({'INFO'}, "Boundary files 0/U and 0/p Generated Successfully")
+        return {'FINISHED'}
+class OPENFOAM_OT_RunSimulation(bpy.types.Operator):
+    bl_idname = "openfoam.run_simulation"
+    bl_label = "Run OpenFOAM Solver"
+
+    def execute(self, context):
+        props = context.scene.openfoam_props
+        case_path = bpy.path.abspath(props.case_dir)
+
+        # Convert Windows path to WSL Linux path and chain the commands
+        # It runs blockMesh first, then runs whatever solver you selected (e.g., icoFoam)
+        wsl_command = f"cd $(wslpath '{case_path}') && blockMesh && {props.solver}"
+
+        try:
+            # Trigger the Linux terminal in the background
+            process = subprocess.run(["wsl", "bash", "-c", wsl_command], capture_output=True, text=True)
+            
+            if process.returncode == 0:
+                self.report({'INFO'}, f"Simulation complete: {props.solver}")
+            else:
+                self.report({'ERROR'}, f"Solver failed: Check terminal. {process.stderr}")
+                print(process.stderr)
+        except FileNotFoundError:
+            self.report({'ERROR'}, "WSL is not installed or accessible on this machine.")
+
         return {'FINISHED'}
