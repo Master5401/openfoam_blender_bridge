@@ -55,3 +55,7 @@ class OPENFOAM_PT_Sidebar(bpy.types.Panel):
         col = box.column(align=True)
         col.label(text="Patch Setup (Cavity Demo):")
         col.prop(props, "lid_velocity")
+       
+        box = layout.box()
+        box.label(text="Execution", icon='CONSOLE')
+        box.operator("openfoam.run_simulation", text="Run Simulation (WSL)", icon='PLAY')
