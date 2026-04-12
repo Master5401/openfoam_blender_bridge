@@ -63,3 +63,58 @@ blocks
 
         self.report({'INFO'}, "blockMeshDict Generated Successfully")
         return {'FINISHED'}
+class OPENFOAM_OT_WriteBoundary(bpy.types.Operator):
+    bl_idname = "openfoam.write_boundary"
+    bl_label = "Generate 0/ Directory"
+
+    def execute(self, context):
+        props = context.scene.openfoam_props
+        
+        # Build the 0/ path
+        case_path = bpy.path.abspath(props.case_dir)
+        zero_path = os.path.join(case_path, "0")
+        if not os.path.exists(zero_path):
+            os.makedirs(zero_path)
+
+        # M5: Pressure File (p)
+        p_content = f"""FoamFile
+{{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      p;
+}}
+dimensions      [0 2 -2 0 0 0 0];
+internalField   uniform {props.init_pressure};
+boundaryField
+{{
+    movingWall {{ type zeroGradient; }}
+    fixedWalls {{ type zeroGradient; }}
+    frontAndBack {{ type empty; }}
+}}"""
+        
+        # M5: Velocity File (U)
+        u_content = f"""FoamFile
+{{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}}
+dimensions      [0 1 -1 0 0 0 0];
+internalField   uniform ({props.init_vel_x} {props.init_vel_y} {props.init_vel_z});
+boundaryField
+{{
+    movingWall {{ type fixedValue; value uniform ({props.lid_velocity} 0 0); }}
+    fixedWalls {{ type noSlip; }}
+    frontAndBack {{ type empty; }}
+}}"""
+
+        # Write files to disk
+        with open(os.path.join(zero_path, "p"), "w") as f:
+            f.write(p_content)
+        with open(os.path.join(zero_path, "U"), "w") as f:
+            f.write(u_content)
+
+        self.report({'INFO'}, "Boundary files 0/U and 0/p Generated Successfully")
+        return {'FINISHED'}
