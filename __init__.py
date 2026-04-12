@@ -14,11 +14,16 @@ def register():
     bpy.utils.register_class(properties.OpenFoamProperties)
     bpy.types.Scene.openfoam_props = bpy.props.PointerProperty(type=properties.OpenFoamProperties)
     bpy.utils.register_class(operators.OPENFOAM_OT_WriteConfig)
-    bpy.utils.register_class(ui.OPENFOAM_PT_Sidebar)
+    bpy.utils.register_class(operators.OPENFOAM_OT_WriteBlockMesh)
     bpy.utils.register_class(operators.OPENFOAM_OT_WriteBoundary)
+    bpy.utils.register_class(operators.OPENFOAM_OT_RunSimulation)
+    bpy.utils.register_class(ui.OPENFOAM_PT_Sidebar)
 
 def unregister():
     bpy.utils.unregister_class(properties.OpenFoamProperties)
     bpy.utils.unregister_class(operators.OPENFOAM_OT_WriteConfig)
-    bpy.utils.unregister_class(ui.OPENFOAM_PT_Sidebar)
+    bpy.utils.unregister_class(operators.OPENFOAM_OT_WriteBlockMesh)
     bpy.utils.unregister_class(operators.OPENFOAM_OT_WriteBoundary)
+    bpy.utils.unregister_class(operators.OPENFOAM_OT_RunSimulation)
+    bpy.utils.unregister_class(ui.OPENFOAM_PT_Sidebar)
+    del bpy.types.Scene.openfoam_props
