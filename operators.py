@@ -144,3 +144,29 @@ class OPENFOAM_OT_RunSimulation(bpy.types.Operator):
             self.report({'ERROR'}, "WSL is not installed or accessible on this machine.")
 
         return {'FINISHED'}
+class OPENFOAM_OT_RunParaview(bpy.types.Operator):
+    bl_idname = "openfoam.run_paraview"
+    bl_label = "Visualize in ParaView"
+
+    def execute(self, context):
+        props = context.scene.openfoam_props
+        case_path = bpy.path.abspath(props.case_dir)
+        foam_file = os.path.join(case_path, "case.foam")
+
+        # 1. The Dummy Trigger: Create an empty .foam file
+        try:
+            with open(foam_file, 'w') as f:
+                pass
+        except Exception as e:
+            self.report({'ERROR'}, f"Failed to create .foam file: {e}")
+            return {'CANCELLED'}
+
+        # 2. The Auto-Launch: Trigger ParaView
+        try:
+            # Popen is non-blocking, so Blender won't freeze while ParaView is open
+            subprocess.Popen(["paraview", foam_file])
+            self.report({'INFO'}, "Launching ParaView...")
+        except FileNotFoundError:
+            self.report({'ERROR'}, "ParaView executable not found. Ensure it is installed and in your system PATH.")
+
+        return {'FINISHED'}
