@@ -59,3 +59,8 @@ class OPENFOAM_PT_Sidebar(bpy.types.Panel):
         box = layout.box()
         box.label(text="Execution", icon='CONSOLE')
         box.operator("openfoam.run_simulation", text="Run Simulation (WSL)", icon='PLAY')
+
+        layout.separator()
+        box = layout.box()
+        box.label(text="Post-Processing", icon='RESTRICT_VIEW_OFF')
+        box.operator("openfoam.run_paraview", text="Open in ParaView", icon='WINDOW')
