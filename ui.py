@@ -1,66 +1,53 @@
 import bpy
 
-class OPENFOAM_PT_Sidebar(bpy.types.Panel):
-    bl_label = "SimFlow Bridge"
-    bl_idname = "OPENFOAM_PT_Sidebar"
+class OPENFOAM_OT_SolverDialog(bpy.types.Operator):
+    bl_idname = "openfoam.solver_dialog"
+    bl_label = "OpenFOAM Solver Setup (Project 4)"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=500)
+
+    def draw(self, context):
+        layout = self.layout
+        props = context.scene.openfoam_props
+
+        box = layout.box()
+        box.label(text="Case & Physics", icon='PHYSICS')
+        box.prop(props, "case_dir")
+        box.prop(props, "solver")
+        box.prop(props, "turbulence")
+
+        box = layout.box()
+        box.label(text="Kinematic Boundaries (0/)", icon='GROUP_VERTEX')
+        box.prop(props, "init_pressure")
+        box.prop(props, "lid_velocity")
+
+        layout.separator()
+        layout.label(text="Automated Pipeline Actions:", icon='CONSOLE')
+        layout.operator("openfoam.write_config", icon='FILE_TICK')
+        layout.operator("openfoam.write_blockmesh", icon='MOD_MESHDEFORM')
+        layout.operator("openfoam.write_boundary", icon='MOD_FLUIDSIM')
+        
+        layout.separator()
+        row = layout.row()
+        row.scale_y = 1.5
+        row.operator("openfoam.run_simulation", icon='PLAY')
+        row.operator("openfoam.run_paraview", icon='RESTRICT_VIEW_OFF')
+
+class OPENFOAM_PT_Launcher(bpy.types.Panel):
+    bl_label = "CFD Engine"
+    bl_idname = "OPENFOAM_PT_Launcher"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'OpenFOAM'
 
     def draw(self, context):
         layout = self.layout
-        props = context.scene.openfoam_props
-
-        # Setup & Physics
-        box = layout.box()
-        box.label(text="Workflow: Setup", icon='PROPERTIES')
-        box.prop(props, "case_dir")
-
-        box = layout.box()
-        box.label(text="Physics", icon='PHYSICS')
-        box.prop(props, "solver")
-
-        box = layout.box()
-        box.label(text="Runtime", icon='TIME')
-        box.prop(props, "end_time")
-        box.prop(props, "delta_t")
-        box.prop(props, "write_interval")
-
-        layout.operator("openfoam.write_config", icon='FILE_TICK')
-        
-        box = layout.box()
-        box.label(text="Mesh Generation", icon='MESH_CUBE')
-        col = box.column(align=True)
-        col.prop(props, "mesh_res_x")
-        col.prop(props, "mesh_res_y")
-        col.prop(props, "mesh_res_z")
-        
-        layout.separator()
-        layout.operator("openfoam.write_blockmesh", text="Generate blockMeshDict", icon='MOD_MESHDEFORM')
-
-        box = layout.box()
-        box.label(text="Boundary Conditions (0/)", icon='GROUP_VERTEX')
-        
-        col = box.column(align=True)
-        col.label(text="Initial Internal Field:")
-        col.prop(props, "init_pressure")
-        
-        row = col.row(align=True)
-        row.prop(props, "init_vel_x", text="U_x")
-        row.prop(props, "init_vel_y", text="U_y")
-        row.prop(props, "init_vel_z", text="U_z")
-        
-        layout.separator()
-        
-        col = box.column(align=True)
-        col.label(text="Patch Setup (Cavity Demo):")
-        col.prop(props, "lid_velocity")
-       
-        box = layout.box()
-        box.label(text="Execution", icon='CONSOLE')
-        box.operator("openfoam.run_simulation", text="Run Simulation (WSL)", icon='PLAY')
-
-        layout.separator()
-        box = layout.box()
-        box.label(text="Post-Processing", icon='RESTRICT_VIEW_OFF')
-        box.operator("openfoam.run_paraview", text="Open in ParaView", icon='WINDOW')
+        layout.label(text="Project 4 MVP Engine")
+        row = layout.row()
+        row.scale_y = 2.0
+        row.operator("openfoam.solver_dialog", text="Launch Solver UI", icon='WINDOW')
