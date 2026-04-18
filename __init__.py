@@ -17,6 +17,7 @@ def register():
     bpy.utils.register_class(operators.OPENFOAM_OT_WriteBlockMesh)
     bpy.utils.register_class(operators.OPENFOAM_OT_WriteBoundary)
     bpy.utils.register_class(operators.OPENFOAM_OT_RunSimulation)
+    bpy.utils.register_class(operators.OPENFOAM_OT_RunParaview)  # M7 Added
     bpy.utils.register_class(ui.OPENFOAM_PT_Sidebar)
 
 def unregister():
@@ -25,5 +26,6 @@ def unregister():
     bpy.utils.unregister_class(operators.OPENFOAM_OT_WriteBlockMesh)
     bpy.utils.unregister_class(operators.OPENFOAM_OT_WriteBoundary)
     bpy.utils.unregister_class(operators.OPENFOAM_OT_RunSimulation)
+    bpy.utils.unregister_class(operators.OPENFOAM_OT_RunParaview)
     bpy.utils.unregister_class(ui.OPENFOAM_PT_Sidebar)
     del bpy.types.Scene.openfoam_props
