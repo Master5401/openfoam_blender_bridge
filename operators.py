@@ -96,7 +96,7 @@ class OPENFOAM_OT_RunSimulation(bpy.types.Operator):
         # Execute WSL Bridge
         wsl_command = f"cd $(wslpath '{case_path}') && blockMesh && {props.solver}"
         try:
-            process = subprocess.run(["wsl", "bash", "-c", wsl_command], capture_output=True, text=True)
+            process = subprocess.run(["wsl", "bash", "-ic", wsl_command], capture_output=True, text=True)
             if process.returncode == 0: 
                 self.report({'INFO'}, f"Simulation complete: {props.solver}")
             else: 
