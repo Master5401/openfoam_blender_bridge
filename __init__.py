@@ -4,28 +4,29 @@ from . import properties, operators, ui
 bl_info = {
     "name": "OpenFOAM Blender Bridge",
     "author": "Shakunth Srinivasan",
-    "version": (1, 0),
+    "version": (1, 1),
     "blender": (4, 0, 0),
     "location": "View3D > Sidebar > OpenFOAM",
     "category": "Add-on",
 }
 
+classes = (
+    properties.OpenFoamProperties,
+    operators.OPENFOAM_OT_WriteConfig,
+    operators.OPENFOAM_OT_WriteBlockMesh,
+    operators.OPENFOAM_OT_WriteBoundary,
+    operators.OPENFOAM_OT_RunSimulation,
+    operators.OPENFOAM_OT_RunParaview,
+    ui.OPENFOAM_OT_SolverDialog,
+    ui.OPENFOAM_PT_Launcher
+)
+
 def register():
-    bpy.utils.register_class(properties.OpenFoamProperties)
+    for cls in classes:
+        bpy.utils.register_class(cls)
     bpy.types.Scene.openfoam_props = bpy.props.PointerProperty(type=properties.OpenFoamProperties)
-    bpy.utils.register_class(operators.OPENFOAM_OT_WriteConfig)
-    bpy.utils.register_class(operators.OPENFOAM_OT_WriteBlockMesh)
-    bpy.utils.register_class(operators.OPENFOAM_OT_WriteBoundary)
-    bpy.utils.register_class(operators.OPENFOAM_OT_RunSimulation)
-    bpy.utils.register_class(operators.OPENFOAM_OT_RunParaview)  # M7 Added
-    bpy.utils.register_class(ui.OPENFOAM_PT_Sidebar)
 
 def unregister():
-    bpy.utils.unregister_class(properties.OpenFoamProperties)
-    bpy.utils.unregister_class(operators.OPENFOAM_OT_WriteConfig)
-    bpy.utils.unregister_class(operators.OPENFOAM_OT_WriteBlockMesh)
-    bpy.utils.unregister_class(operators.OPENFOAM_OT_WriteBoundary)
-    bpy.utils.unregister_class(operators.OPENFOAM_OT_RunSimulation)
-    bpy.utils.unregister_class(operators.OPENFOAM_OT_RunParaview)
-    bpy.utils.unregister_class(ui.OPENFOAM_PT_Sidebar)
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)
     del bpy.types.Scene.openfoam_props
