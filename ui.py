@@ -9,28 +9,43 @@ class OPENFOAM_OT_SolverDialog(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        return context.window_manager.invoke_props_dialog(self, width=500)
+        return context.window_manager.invoke_props_dialog(self, width=550)
 
     def draw(self, context):
         layout = self.layout
         props = context.scene.openfoam_props
 
+        # Core Config
         box = layout.box()
-        box.label(text="Case & Physics", icon='PHYSICS')
+        box.label(text="Case & Physics Configuration", icon='PHYSICS')
         box.prop(props, "case_dir")
         box.prop(props, "solver")
         box.prop(props, "turbulence")
+        box.prop(props, "use_dynamic_mesh")
 
+        # Time & Mesh
+        col = box.column(align=True)
+        col.prop(props, "end_time")
+        col.prop(props, "delta_t")
+        
+        # Kinematics
         box = layout.box()
         box.label(text="Kinematic Boundaries (0/)", icon='GROUP_VERTEX')
         box.prop(props, "init_pressure")
         box.prop(props, "lid_velocity")
+        
+        # Turbulence Params (Dynamic rendering based on selection)
+        if props.turbulence != 'laminar':
+            box.label(text="Turbulence Variables:", icon='MOD_FLUIDSIM')
+            if "k" in props.turbulence: box.prop(props, "turb_k")
+            if props.turbulence == 'kEpsilon': box.prop(props, "turb_epsilon")
+            if props.turbulence == 'kOmega': box.prop(props, "turb_omega")
 
         layout.separator()
         layout.label(text="Automated Pipeline Actions:", icon='CONSOLE')
         layout.operator("openfoam.write_config", icon='FILE_TICK')
         layout.operator("openfoam.write_blockmesh", icon='MOD_MESHDEFORM')
-        layout.operator("openfoam.write_boundary", icon='MOD_FLUIDSIM')
+        layout.operator("openfoam.write_boundary", icon='GROUP_VERTEX')
         
         layout.separator()
         row = layout.row()
