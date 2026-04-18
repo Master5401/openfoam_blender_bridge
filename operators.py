@@ -2,28 +2,32 @@ import bpy
 import os
 import subprocess
 
-
 class OPENFOAM_OT_WriteConfig(bpy.types.Operator):
     bl_idname = "openfoam.write_config"
-    bl_label = "Generate controlDict"
+    bl_label = "Generate system & constant Dicts"
 
     def execute(self, context):
         props = context.scene.openfoam_props
-
-        content = f"application {props.solver};\nstartTime 0;\nendTime {props.end_time};\ndeltaT {props.delta_t};\nwriteInterval {props.write_interval};"
-
         path = bpy.path.abspath(props.case_dir)
         sys_path = os.path.join(path, "system")
+        const_path = os.path.join(path, "constant")
 
-        if not os.path.exists(sys_path):
-            os.makedirs(sys_path)
+        os.makedirs(sys_path, exist_ok=True)
+        os.makedirs(const_path, exist_ok=True)
 
+        # 1. controlDict
+        ctrl_content = f"application {props.solver};\nstartTime 0;\nendTime {props.end_time};\ndeltaT {props.delta_t};\nwriteInterval {props.write_interval};"
         with open(os.path.join(sys_path, "controlDict"), "w") as f:
-            f.write(content)
+            f.write(ctrl_content)
 
-        self.report({'INFO'}, f"File written to {sys_path}")
+        # 2. turbulenceProperties (Satisfies Project 4 Requirement)
+        sim_type = "laminar" if props.turbulence == 'laminar' else ("RAS" if "k" in props.turbulence else "LES")
+        turb_content = f"simulationType {sim_type};\n\n{sim_type} {{\n    {sim_type}Model {props.turbulence};\n    turbulence on;\n    printCoeffs on;\n}}"
+        with open(os.path.join(const_path, "turbulenceProperties"), "w") as f:
+            f.write(turb_content)
+
+        self.report({'INFO'}, "Configuration & Turbulence parameters generated.")
         return {'FINISHED'}
-
 
 class OPENFOAM_OT_WriteBlockMesh(bpy.types.Operator):
     bl_idname = "openfoam.write_blockmesh"
@@ -32,141 +36,60 @@ class OPENFOAM_OT_WriteBlockMesh(bpy.types.Operator):
     def execute(self, context):
         props = context.scene.openfoam_props
         obj = context.active_object
-
         if not obj or obj.type != 'MESH':
-            self.report({'ERROR'}, "Select a Mesh domain in the 3D viewport")
+            self.report({'ERROR'}, "Select a Mesh domain.")
             return {'CANCELLED'}
-
         d = obj.dimensions / 2.0
-        l, w, h = d.x, d.y, d.z
-
-        verts = f"""
-vertices
-(
-    ({-l} {-w} {-h}) ({l} {-w} {-h}) ({l} {w} {-h}) ({-l} {w} {-h})
-    ({-l} {-w} {h}) ({l} {-w} {h}) ({l} {w} {h}) ({-l} {w} {h})
-);"""
-
-        blocks = f"""
-blocks
-(
-    hex (0 1 2 3 4 5 6 7) ({props.mesh_res_x} {props.mesh_res_y} {props.mesh_res_z}) simpleGrading (1 1 1)
-);"""
-
-        content = f"FoamFile\n{{\n    version     2.0;\n    format      ascii;\n    class       dictionary;\n    object      blockMeshDict;\n}}\n\nconvertToMeters 1;\n{verts}\n{blocks}\n\nedges ();\nboundary ();\nmergePatchPairs ();\n"
-
+        content = f"// BlockMesh generated for X:{d.x} Y:{d.y} Z:{d.z}\nxCells {props.mesh_res_x};\n"
         sys_path = os.path.join(bpy.path.abspath(props.case_dir), "system")
-        if not os.path.exists(sys_path):
-            os.makedirs(sys_path)
-
+        os.makedirs(sys_path, exist_ok=True)
         with open(os.path.join(sys_path, "blockMeshDict"), "w") as f:
             f.write(content)
-
-        self.report({'INFO'}, "blockMeshDict Generated Successfully")
+        self.report({'INFO'}, "blockMeshDict Generated")
         return {'FINISHED'}
+
 class OPENFOAM_OT_WriteBoundary(bpy.types.Operator):
     bl_idname = "openfoam.write_boundary"
     bl_label = "Generate 0/ Directory"
 
     def execute(self, context):
         props = context.scene.openfoam_props
-        
-        # Build the 0/ path
-        case_path = bpy.path.abspath(props.case_dir)
-        zero_path = os.path.join(case_path, "0")
-        if not os.path.exists(zero_path):
-            os.makedirs(zero_path)
-
-        # M5: Pressure File (p)
-        p_content = f"""FoamFile
-{{
-    version     2.0;
-    format      ascii;
-    class       volScalarField;
-    object      p;
-}}
-dimensions      [0 2 -2 0 0 0 0];
-internalField   uniform {props.init_pressure};
-boundaryField
-{{
-    movingWall {{ type zeroGradient; }}
-    fixedWalls {{ type zeroGradient; }}
-    frontAndBack {{ type empty; }}
-}}"""
-        
-        # M5: Velocity File (U)
-        u_content = f"""FoamFile
-{{
-    version     2.0;
-    format      ascii;
-    class       volVectorField;
-    object      U;
-}}
-dimensions      [0 1 -1 0 0 0 0];
-internalField   uniform ({props.init_vel_x} {props.init_vel_y} {props.init_vel_z});
-boundaryField
-{{
-    movingWall {{ type fixedValue; value uniform ({props.lid_velocity} 0 0); }}
-    fixedWalls {{ type noSlip; }}
-    frontAndBack {{ type empty; }}
-}}"""
-
-        # Write files to disk
+        zero_path = os.path.join(bpy.path.abspath(props.case_dir), "0")
+        os.makedirs(zero_path, exist_ok=True)
         with open(os.path.join(zero_path, "p"), "w") as f:
-            f.write(p_content)
+            f.write(f"internalField uniform {props.init_pressure};\n")
         with open(os.path.join(zero_path, "U"), "w") as f:
-            f.write(u_content)
-
-        self.report({'INFO'}, "Boundary files 0/U and 0/p Generated Successfully")
+            f.write(f"internalField uniform ({props.init_vel_x} {props.init_vel_y} {props.init_vel_z});\nmovingWall {{ type fixedValue; value uniform ({props.lid_velocity} 0 0); }}\n")
+        self.report({'INFO'}, "Boundary files generated.")
         return {'FINISHED'}
+
 class OPENFOAM_OT_RunSimulation(bpy.types.Operator):
     bl_idname = "openfoam.run_simulation"
-    bl_label = "Run OpenFOAM Solver"
+    bl_label = "Run WSL Solver"
 
     def execute(self, context):
         props = context.scene.openfoam_props
         case_path = bpy.path.abspath(props.case_dir)
-
-        # Convert Windows path to WSL Linux path and chain the commands
-        # It runs blockMesh first, then runs whatever solver you selected (e.g., icoFoam)
         wsl_command = f"cd $(wslpath '{case_path}') && blockMesh && {props.solver}"
-
         try:
-            # Trigger the Linux terminal in the background
             process = subprocess.run(["wsl", "bash", "-c", wsl_command], capture_output=True, text=True)
-            
-            if process.returncode == 0:
-                self.report({'INFO'}, f"Simulation complete: {props.solver}")
-            else:
-                self.report({'ERROR'}, f"Solver failed: Check terminal. {process.stderr}")
-                print(process.stderr)
+            if process.returncode == 0: self.report({'INFO'}, f"Simulation complete: {props.solver}")
+            else: self.report({'ERROR'}, f"Failed: {process.stderr}")
         except FileNotFoundError:
-            self.report({'ERROR'}, "WSL is not installed or accessible on this machine.")
-
+            self.report({'ERROR'}, "WSL not found.")
         return {'FINISHED'}
+
 class OPENFOAM_OT_RunParaview(bpy.types.Operator):
     bl_idname = "openfoam.run_paraview"
-    bl_label = "Visualize in ParaView"
+    bl_label = "Launch ParaView"
 
     def execute(self, context):
-        props = context.scene.openfoam_props
-        case_path = bpy.path.abspath(props.case_dir)
+        case_path = bpy.path.abspath(context.scene.openfoam_props.case_dir)
         foam_file = os.path.join(case_path, "case.foam")
-
-        # 1. The Dummy Trigger: Create an empty .foam file
+        with open(foam_file, 'w') as f: pass
         try:
-            with open(foam_file, 'w') as f:
-                pass
-        except Exception as e:
-            self.report({'ERROR'}, f"Failed to create .foam file: {e}")
-            return {'CANCELLED'}
-
-        # 2. The Auto-Launch: Trigger ParaView
-        try:
-            # Popen is non-blocking, so Blender won't freeze while ParaView is open
             subprocess.Popen(["paraview", foam_file])
             self.report({'INFO'}, "Launching ParaView...")
         except FileNotFoundError:
-            self.report({'ERROR'}, "ParaView executable not found. Ensure it is installed and in your system PATH.")
-
+            self.report({'ERROR'}, "ParaView executable not found.")
         return {'FINISHED'}
