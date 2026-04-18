@@ -4,7 +4,7 @@ from . import properties, operators, ui
 bl_info = {
     "name": "OpenFOAM Blender Bridge",
     "author": "Shakunth Srinivasan",
-    "version": (1, 1),
+    "version": (2, 0),
     "blender": (4, 0, 0),
     "location": "View3D > Sidebar > OpenFOAM",
     "category": "Add-on",
